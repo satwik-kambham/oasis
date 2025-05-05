@@ -21,7 +21,7 @@
         licenseAccepted = true;
       };
       androidPkgs = androidEnv.composeAndroidPackages {
-        platformVersions = [ "35" ];
+        platformVersions = [ "34" "35" ];
         buildToolsVersions = [ "33.0.1" ];
         includeEmulator = "if-supported";
         includeSystemImages = "if-supported";
@@ -46,6 +46,9 @@
           androidPkgs.androidsdk
           androidPkgs.platform-tools
           jdk17
+          pulseaudio
+          ffmpeg
+          zenity
         ];
 
         JAVA_HOME = pkgs.jdk17.home;
