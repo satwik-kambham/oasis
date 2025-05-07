@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -55,7 +57,9 @@ class _MyHomePageState extends State<MyHomePage> {
     if (_dir.isEmpty && !kIsWeb) {
       _loadState().then((recordingDir) async {
         if (recordingDir.isEmpty) {
-          await Permission.manageExternalStorage.request();
+          if (Platform.isAndroid) {
+            await Permission.manageExternalStorage.request();
+          }
           showDialog(
             context: context,
             builder: (context) {
@@ -68,7 +72,6 @@ class _MyHomePageState extends State<MyHomePage> {
                       final navigator = Navigator.of(context);
                       final recordingDir =
                           await FilePicker.platform.getDirectoryPath() ?? '';
-                      debugPrint('Setting Recording Dir: $recordingDir');
                       final prefs = SharedPreferencesAsync();
                       await prefs.setString('recording_dir', recordingDir);
                       setState(() {

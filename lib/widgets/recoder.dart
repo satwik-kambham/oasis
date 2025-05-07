@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:record/record.dart';
@@ -13,16 +15,26 @@ class Recoder extends StatefulWidget {
 
 class _RecoderState extends State<Recoder> {
   late final AudioRecorder _audioRecorder;
+  StreamSubscription<RecordState>? _recordSub;
+  RecordState _recordState = RecordState.stop;
+  List<DropdownMenuEntry<InputDevice>> _inputDevices = [];
+  InputDevice? _inputDevice;
 
   @override
   void initState() {
     _audioRecorder = AudioRecorder();
+    _recordSub = _audioRecorder.onStateChanged().listen((recordState) {
+      setState(() {
+        _recordState = recordState;
+      });
+    });
     super.initState();
   }
 
   @override
   void dispose() {
     _audioRecorder.dispose();
+    _recordSub?.cancel();
     super.dispose();
   }
 
@@ -39,38 +51,75 @@ class _RecoderState extends State<Recoder> {
         );
       }
 
-      debugPrint(path);
-      debugPrint((await _audioRecorder.listInputDevices()).toString());
-
-      await _audioRecorder.start(const RecordConfig(encoder: AudioEncoder.wav),
+      await _audioRecorder.start(
+          RecordConfig(
+            encoder: AudioEncoder.wav,
+            device: _inputDevice,
+          ),
           path: path);
     }
   }
 
   Future<void> _stop() async {
     final path = await _audioRecorder.stop();
-    debugPrint('Written to $path');
+  }
+
+  Widget _buildRecordButton() {
+    if (_recordState != RecordState.stop) {
+      return IconButton(
+        icon: const Icon(Icons.stop, size: 30),
+        onPressed: () {
+          _stop();
+        },
+      );
+    } else {
+      return IconButton(
+        icon: const Icon(Icons.mic, size: 30),
+        onPressed: () {
+          _start();
+        },
+      );
+    }
+  }
+
+  Widget _refreshInputDevices() {
+    return IconButton(
+      icon: const Icon(Icons.refresh, size: 30),
+      onPressed: () async {
+        final inputDevices = await _audioRecorder.listInputDevices();
+        setState(() {
+          _inputDevices = inputDevices.map<DropdownMenuEntry<InputDevice>>(
+            (inputDevice) {
+              return DropdownMenuEntry<InputDevice>(
+                value: inputDevice,
+                label: inputDevice.label,
+              );
+            },
+          ).toList();
+        });
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: <Widget>[
-        IconButton(
-          icon: const Icon(Icons.mic),
-          onPressed: () {
-            _start();
-          },
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            DropdownMenu(
+              dropdownMenuEntries: _inputDevices,
+              onSelected: (device) {
+                _inputDevice = device;
+              },
+            ),
+            _refreshInputDevices(),
+          ],
         ),
-        const SizedBox(
-          width: 20,
-        ),
-        IconButton(
-          icon: const Icon(Icons.stop),
-          onPressed: () {
-            _stop();
-          },
-        ),
+        const SizedBox(height: 30),
+        _buildRecordButton(),
       ],
     );
   }
