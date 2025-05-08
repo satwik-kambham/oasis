@@ -55,6 +55,7 @@ class _RecoderState extends State<Recoder> {
           RecordConfig(
             encoder: AudioEncoder.wav,
             device: _inputDevice,
+            sampleRate: 16000,
           ),
           path: path);
     }
