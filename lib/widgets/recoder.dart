@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 import 'package:path/path.dart' as p;
 
+import 'package:oasis/utils/rift.dart';
+
 class Recoder extends StatefulWidget {
   final String dir;
   const Recoder({super.key, required this.dir});
@@ -19,6 +21,7 @@ class _RecoderState extends State<Recoder> {
   RecordState _recordState = RecordState.stop;
   List<DropdownMenuEntry<InputDevice>> _inputDevices = [];
   InputDevice? _inputDevice;
+  String _transcript = '';
 
   @override
   void initState() {
@@ -63,6 +66,10 @@ class _RecoderState extends State<Recoder> {
 
   Future<void> _stop() async {
     final path = await _audioRecorder.stop();
+    final transcription = await transcribeAudio(path!);
+    setState(() {
+      _transcript = transcription;
+    });
   }
 
   Widget _buildRecordButton() {
@@ -107,6 +114,7 @@ class _RecoderState extends State<Recoder> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: <Widget>[
+        Text(_transcript),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
