@@ -4,8 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 import 'package:path/path.dart' as p;
+import 'package:provider/provider.dart';
 
 import 'package:oasis/utils/rift.dart';
+import 'package:oasis/chat_state.dart';
 
 class Recoder extends StatefulWidget {
   final String dir;
@@ -21,7 +23,6 @@ class _RecoderState extends State<Recoder> {
   RecordState _recordState = RecordState.stop;
   List<DropdownMenuEntry<InputDevice>> _inputDevices = [];
   InputDevice? _inputDevice;
-  String _transcript = '';
 
   @override
   void initState() {
@@ -64,20 +65,18 @@ class _RecoderState extends State<Recoder> {
     }
   }
 
-  Future<void> _stop() async {
+  Future<void> _stop(BuildContext context) async {
     final path = await _audioRecorder.stop();
     final transcription = await transcribeAudio(path!);
-    setState(() {
-      _transcript = transcription;
-    });
+    context.read<ChatState>().setTranscript(transcription);
   }
 
-  Widget _buildRecordButton() {
+  Widget _buildRecordButton(BuildContext context) {
     if (_recordState != RecordState.stop) {
       return IconButton(
         icon: const Icon(Icons.stop, size: 30),
         onPressed: () {
-          _stop();
+          _stop(context);
         },
       );
     } else {
@@ -114,7 +113,6 @@ class _RecoderState extends State<Recoder> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: <Widget>[
-        Text(_transcript),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
@@ -128,7 +126,7 @@ class _RecoderState extends State<Recoder> {
           ],
         ),
         const SizedBox(height: 30),
-        _buildRecordButton(),
+        _buildRecordButton(context),
       ],
     );
   }

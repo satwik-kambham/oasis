@@ -1,12 +1,18 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:path/path.dart' as p;
+import 'package:audioplayers/audioplayers.dart';
 
 import 'package:oasis/widgets/recoder.dart';
+import 'package:oasis/chat_state.dart';
 
 void main() {
   runApp(const App());
@@ -18,14 +24,16 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Oasis',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.deepPurple, brightness: Brightness.dark),
-        useMaterial3: true,
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
+        title: 'Oasis',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.deepPurple, brightness: Brightness.dark),
+          useMaterial3: true,
+        ),
+        home: ChangeNotifierProvider(
+          create: (context) => ChatState(),
+          child: const MyHomePage(title: 'Oasis'),
+        ));
   }
 }
 
@@ -39,10 +47,40 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   String _dir = '';
+  final _wsChannel =
+      WebSocketChannel.connect(Uri.parse('ws://192.168.29.209:4123/ws'));
+  StreamSubscription<dynamic>? _wsSub;
+  final _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
+    _wsSub = _wsChannel.stream.listen((message) async {
+      debugPrint(message.runtimeType.toString());
+      if (message is Uint8List) {
+        late String path;
+
+        if (kIsWeb) {
+          path = '';
+        } else {
+          path = p.join(
+            _dir,
+            'tts.wav',
+          );
+        }
+
+        File file = File(path);
+        file.writeAsBytesSync(message, flush: true);
+        
+        await _audioPlayer.play(DeviceFileSource(path));
+      }
+    });
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    _wsSub?.cancel();
+    super.dispose();
   }
 
   Future<String> _loadState() async {
@@ -95,8 +133,19 @@ class _MyHomePageState extends State<MyHomePage> {
 
     return Scaffold(
       body: Center(
-        child: Recoder(
-          dir: _dir,
+        child: Column(
+          children: <Widget>[
+            Text('Transcript: ${context.watch<ChatState>().transcript}'),
+            Recoder(
+              dir: _dir,
+            ),
+            IconButton(
+              icon: const Icon(Icons.send, size: 30),
+              onPressed: () {
+                _wsChannel.sink.add(context.read<ChatState>().transcript);
+              },
+            ),
+          ],
         ),
       ),
     );

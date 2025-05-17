@@ -49,6 +49,12 @@
           pulseaudio
           ffmpeg
           zenity
+          gst_all_1.gstreamer
+          gst_all_1.gst-plugins-base
+          gst_all_1.gst-plugins-good
+          gst_all_1.gst-libav
+          pkg-config
+          libunwind
         ];
 
         JAVA_HOME = pkgs.jdk17.home;
