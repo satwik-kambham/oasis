@@ -54,8 +54,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
+    super.initState();
     _wsSub = _wsChannel.stream.listen((message) async {
-      debugPrint(message.runtimeType.toString());
       if (message is Uint8List) {
         late String path;
 
@@ -70,11 +70,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
         File file = File(path);
         file.writeAsBytesSync(message, flush: true);
-        
+
         await _audioPlayer.play(DeviceFileSource(path));
+      } else if (message is String) {
+        context.read<ChatState>().setResult(message);
       }
     });
-    super.initState();
   }
 
   @override
@@ -145,6 +146,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 _wsChannel.sink.add(context.read<ChatState>().transcript);
               },
             ),
+            Text('${context.watch<ChatState>().result}'),
           ],
         ),
       ),
